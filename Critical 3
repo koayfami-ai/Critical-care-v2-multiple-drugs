@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Critical Care Drugs Dosages & Infusion Rate Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @keyframes alert-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.99); }
+    }
+    .animate-critical { animation: alert-pulse 1.5s infinite ease-in-out; }
+    
+    /* Toast Notification Animation */
+    @keyframes toast-in {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .toast-anim { animation: toast-in 0.3s ease-out forwards; }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; }
+      .bg-slate-800, .bg-slate-900 { background: white !important; border-color: #cbd5e1 !important; color: black !important; }
+      .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-sky-300, .text-sky-400 { color: black !important; }
+      .border-slate-700, .border-slate-800 { border-color: #94a3b8 !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans pb-12">
+
+  <!-- HEADER -->
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-bold text-sky-400 flex items-center gap-2">
+            <i class="fa-solid fa-briefcase-medical"></i> Critical Care Drugs Dosages & Infusion Rate Calculator
+          </h1>
+          <p class="text-xs text-sky-300/80 mt-1 font-medium">
+            Created for acute and critical care bedside safe practice
+          </p>
+        </div>
+        
+        <!-- Header Profile & Actions -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div class="bg-slate-900/90 p-2.5 rounded-lg border border-slate-700 text-xs">
+            <p class="font-semibold text-slate-200"><i class="fa-solid fa-user-doctor text-sky-400 mr-1"></i> Dr. Carmen Koay Gaik Bee</p>
+            <p class="text-slate-400">AIM Physician, Hospital Bukit Mertajam</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION TOOLBAR (EXPORT, SAVE, SHARE, PRINT) -->
+      <div class="mt-4 pt-3 border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-2 no-print">
+        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-sky-400"></i> Bedside Actions
+        </span>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Save Button -->
+          <button onclick="saveCalculation()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-600 transition shadow-sm">
+            <i class="fa-solid fa-floppy-disk text-emerald-400"></i> Save
+          </button>
+          
+          <!-- Export Button -->
+          <button onclick="exportReport()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-600 transition shadow-sm">
+            <i class="fa-solid fa-file-arrow-down text-sky-400"></i> Export
+          </button>
+
+          <!-- Share Button -->
+          <button onclick="shareCalculation()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-slate-600 transition shadow-sm">
+            <i class="fa-solid fa-share-nodes text-amber-400"></i> Share
+          </button>
+
+          <!-- Print Button -->
+          <button onclick="printReport()" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shadow-sm">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN: PATIENT DEMOGRAPHY & DOSAGE RANGES -->
+    <div class="lg:col-span-4 space-y-6">
+      
+      <!-- PATIENT DEMOGRAPHY -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 shadow-lg">
+        <h2 class="text-base font-bold text-slate-100 border-b border-slate-700 pb-2.5 mb-4 flex items-center justify-between">
+          <span><i class="fa-solid fa-id-card text-sky-400 mr-2"></i> Patient Demography</span>
+          <span id="crcl-badge" class="text-xs bg-emerald-950 text-emerald-300 border border-emerald-700 px-2.5 py-1 rounded-full font-mono font-bold">CrCl: -- mL/min</span>
+        </h2>
+
+        <div class="space-y-3.5">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Patient Name</label>
+            <input type="text" id="pt-name" placeholder="e.g. Patient A" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Patient ID / Bed</label>
+              <input type="text" id="pt-id" value="Bed 01" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Weight (kg) *</label>
+              <input type="number" id="pt-weight" value="60" min="10" max="250" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-sky-400 font-bold focus:outline-none focus:border-sky-500">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Age (Years)</label>
+              <input type="number" id="pt-age" value="65" min="12" max="120" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Sex</label>
+              <select id="pt-sex" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+                <option value="male">Male</option>
+                <option value="female">Female (×0.85)</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="text-xs font-medium text-slate-300">Serum Creatinine</label>
+              <div class="text-xs text-slate-400 space-x-2">
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="scr-unit" value="umol" checked class="text-sky-500"> <span class="ml-1 text-[11px]">μmol/L</span>
+                </label>
+                <label class="inline-flex items-center cursor-pointer">
+                  <input type="radio" name="scr-unit" value="mgdl" class="text-sky-500"> <span class="ml-1 text-[11px]">mg/dL</span>
+                </label>
+              </div>
+            </div>
+            <input type="number" id="pt-scr" value="120" step="0.1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-sky-500">
+          </div>
+
+          <!-- CrCl (Cockcroft Gault Formula) -->
+          <div class="bg-slate-900 border border-emerald-500/40 rounded-lg p-3 text-center mt-2">
+            <p class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">CrCl (Cockcroft Gault formula):</p>
+            <p id="cg-crcl-val" class="text-2xl font-bold font-mono text-emerald-400 my-0.5">-- mL/min</p>
+            <p id="cg-strata" class="text-xs text-slate-300">Category: Normal / Mild</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- INOTROPES AND VASOPRESSORS DOSAGE RANGE QUICK REFERENCE -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 shadow-lg">
+        <h3 class="text-sm font-bold text-sky-400 border-b border-slate-700 pb-2 mb-3 flex items-center">
+          <i class="fa-solid fa-heart-pulse text-amber-400 mr-2"></i> Inotropes and Vasopressors Dosage Range
+        </h3>
+        <div class="space-y-3 text-xs text-slate-300 font-mono">
+          
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-700">
+            <p class="font-bold text-sky-300 text-sm">Noradrenaline</p>
+            <p class="text-slate-200 mt-1"><span class="text-emerald-400 font-semibold">Standard dose:</span> 0.01 – 1 mcg/kg/min</p>
+            <p class="text-slate-200"><span class="text-amber-400 font-semibold">High dose:</span> 1 – 3 mcg/kg/min</p>
+          </div>
+
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-700">
+            <p class="font-bold text-sky-300 text-sm">Dobutamine (Dobu)</p>
+            <p class="text-slate-200 mt-1"><span class="text-emerald-400 font-semibold">Standard dose:</span> 2 – 5 mcg/kg/min</p>
+            <p class="text-slate-200"><span class="text-amber-400 font-semibold">High dose:</span> 5.1 – 20 mcg/kg/min</p>
+          </div>
+
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-700">
+            <p class="font-bold text-sky-300 text-sm">Dopamine</p>
+            <p class="text-slate-200 mt-1"><span class="text-emerald-400 font-semibold">Standard dose:</span> 1 – 3 mcg/kg/min</p>
+            <p class="text-slate-200"><span class="text-amber-400 font-semibold">High dose:</span> 3 – 20 mcg/kg/min</p>
+          </div>
+
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-700">
+            <p class="font-bold text-sky-300 text-sm">Adrenaline</p>
+            <p class="text-slate-200 mt-1"><span class="text-emerald-400 font-semibold">Standard:</span> 0.01 – 0.05 mcg/kg/min</p>
+            <p class="text-slate-200"><span class="text-amber-400 font-semibold">High:</span> > 0.05 up to 0.5 mcg/kg/min</p>
+            <p class="text-slate-200"><span class="text-rose-400 font-semibold">Cardiac arrest:</span> > 0.5 – 1 mcg/kg/min</p>
+          </div>
+
+          <!-- VASOPRESSIN SECTION -->
+          <div class="p-2.5 bg-slate-900 rounded border border-slate-700">
+            <p class="font-bold text-sky-300 text-sm">Vasopressin</p>
+            <p class="text-slate-200 mt-1"><span class="text-emerald-400 font-semibold">Fixed rate:</span> 0.01 – 0.03 unit/min (usual vasoplegic shock)</p>
+            <p class="text-slate-200"><span class="text-amber-400 font-semibold">Higher dose:</span> 0.04 unit/min (RV failure, post-cardiotomy syndrome)</p>
+            <p class="text-slate-400 text-[11px] mt-1.5"><span class="text-sky-300 font-semibold">Standard Dilution:</span> 1 unit/hr = 1 mL/hr (50 units in 50 mL NS)</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN: CALCULATORS & ANTIMICROBIALS -->
+    <div class="lg:col-span-8 space-y-6">
+
+      <!-- MAIN CALCULATOR -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 shadow-lg">
+        
+        <!-- CATEGORY SELECTION TABS -->
+        <div class="flex flex-wrap border-b border-slate-700 mb-5 gap-2 no-print">
+          <button id="tab-vaso" onclick="switchCategory('vaso')" class="px-4 py-2 text-sm font-semibold border-b-2 border-sky-400 text-sky-400 focus:outline-none">
+            <i class="fa-solid fa-pump-medical mr-1.5"></i> Inotropes / Vasopressors
+          </button>
+          <button id="tab-sed" onclick="switchCategory('sed')" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none">
+            <i class="fa-solid fa-bed-pulse mr-1.5"></i> Sedation / Analgesia
+          </button>
+          <button id="tab-abx" onclick="switchCategory('abx')" class="px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none">
+            <i class="fa-solid fa-pills mr-1.5"></i> Antibiotic Renal Dosing
+          </button>
+        </div>
+
+        <!-- EXTENDED ANTIMICROBIAL RENAL MATRIX CARD -->
+        <div id="abx-renal-matrix-card" class="hidden bg-slate-900 border-2 border-emerald-500/80 rounded-xl p-4 mb-5 shadow-md">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              <i class="fa-solid fa-vial-circle-check mr-1"></i> Antibiotic Renal Dosage Guidelines
+            </span>
+            <span class="text-xs font-mono text-slate-400">Current CrCl: <strong id="abx-crcl-text" class="text-emerald-400">-- mL/min</strong></span>
+          </div>
+
+          <div class="space-y-3 font-mono text-xs">
+            
+            <!-- Tazosin -->
+            <div id="card-tazosin" class="p-3 rounded border border-slate-700 bg-slate-800/80">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-sky-300 text-sm">Tazosin (Piperacillin/Tazobactam)</span>
+                <span id="taz-tag" class="text-[10px] px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-700">Standard: 4.5g QID</span>
+              </div>
+              <p id="taz-rec" class="text-slate-200 mt-1">CrCl 20 - 40: 3.375g QID | CrCl &lt; 20: 2.25g QID</p>
+            </div>
+
+            <!-- Cefepime -->
+            <div id="card-cefepime" class="p-3 rounded border border-slate-700 bg-slate-800/80">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-sky-300 text-sm">Cefepime</span>
+                <span id="cef-tag" class="text-[10px] px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-700">Standard: 2g TDS</span>
+              </div>
+              <p id="cef-rec" class="text-slate-200 mt-1">CrCl 30 - 50: 1g TDS | CrCl 11 - 29: 1g BD | CrCl &lt; 11: 1g OD</p>
+            </div>
+
+            <!-- Meropenem -->
+            <div id="card-meropenem" class="p-3 rounded border border-slate-700 bg-slate-800/80">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-sky-300 text-sm">Meropenem</span>
+                <span id="mer-tag" class="text-[10px] px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-700">Standard: 1g TDS</span>
+              </div>
+              <p id="mer-rec" class="text-slate-200 mt-1">CrCl 26 - 50: 1g BD | CrCl 10 - 25: 500mg BD | CrCl &lt; 10: 500mg OD</p>
+            </div>
+
+            <!-- Unasyn -->
+            <div id="card-unasyn" class="p-3 rounded border border-slate-700 bg-slate-800/80">
+              <div class="flex justify-between items-center mb-1">
+                <span class="font-bold text-sky-300 text-sm">Unasyn (Ampicillin/Sulbactam)</span>
+                <span id="una-tag" class="text-[10px] px-2 py-0.5 rounded font-bold bg-sky-950 text-sky-300 border border-sky-700">Standard: 3g QID</span>
+              </div>
+              <p id="una-rec" class="text-slate-200 mt-1">CrCl 15 - 29: 3g BD | CrCl &lt; 15: 3g OD</p>
+            </div>
+
+          </div>
+        </div>
+<!-- ACTIVE ICU DRUG LIST -->
+
+<div class="bg-slate-900 border border-slate-700 rounded-xl p-4 mb-5">
+
+    <div class="flex justify-between items-center mb-3">
+
+        <h3 class="text-sm font-bold text-sky-300">
+            <i class="fa-solid fa-notes-medical mr-2"></i>
+            Active ICU Medications
+        </h3>
+
+        <button
+            onclick="addCurrentDrug()"
+            class="bg-sky-600 hover:bg-sky-500 px-3 py-1.5 rounded-lg text-xs font-semibold">
+
+            ➕ Add Current Drug
+
+        </button>
+
+    </div>
+
+    <div
+        id="active-drugs-list"
+        class="space-y-2">
+
+    </div>
+
+        <!-- DRUG SELECTION & STRENGTH -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Select Medication</label>
+            <select id="drug-select" onchange="onDrugChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-semibold focus:outline-none focus:border-sky-500">
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Dilution / Preparation</label>
+            <select id="strength-select" onchange="calculate()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-semibold focus:outline-none focus:border-sky-500">
+            </select>
+          </div>
+        </div>
+
+        <!-- DILUTION PREPARATION DETAILS -->
+        <div class="bg-slate-900/80 rounded-lg border border-slate-700 p-3 mb-5 text-xs text-slate-300 flex items-start gap-2">
+          <i class="fa-solid fa-circle-info text-sky-400 mt-0.5"></i>
+          <div>
+            <span class="font-bold text-slate-100">Bedside Preparation Detail: </span>
+            <span id="mix-details">Loading...</span>
+          </div>
+        </div>
+
+        <!-- CALCULATOR MODE & INPUT / OUTPUT -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-900/90 p-4 rounded-xl border border-slate-700 mb-5">
+          
+          <div class="md:col-span-2 flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Calculator Direction</span>
+            <div class="flex items-center bg-slate-800 p-1 rounded-lg border border-slate-700 text-xs no-print">
+              <button id="btn-mode-forward" onclick="setCalcMode('forward')" class="px-3 py-1 rounded bg-sky-600 text-white font-semibold">Target Dose → Pump Rate (mL/h)</button>
+              <button id="btn-mode-reverse" onclick="setCalcMode('reverse')" class="px-3 py-1 rounded text-slate-400 hover:text-white font-semibold">Pump Rate (mL/h) → Delivered Dose</button>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label id="input-label" class="block text-xs font-semibold text-slate-300">Enter Desired Dose</label>
+            <div class="relative">
+              <input type="number" id="calc-input" value="1" step="0.1" oninput="calculate()" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-lg font-mono text-sky-300 focus:outline-none focus:border-sky-400 font-bold">
+              <span id="input-unit" class="absolute right-3 top-2.5 text-xs text-slate-400 font-mono">units/hr</span>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label id="output-label" class="block text-xs font-semibold text-slate-300">Required Pump Infusion Rate</label>
+            <div class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 flex items-center justify-between">
+              <span id="calc-output-val" class="text-2xl font-bold font-mono text-emerald-400">1.0</span>
+              <span id="output-unit" class="text-xs text-slate-400 font-mono">mL / hour</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- MIDAZOLAM + FENTANYL / MORPHINE DUAL AGENT BREAKDOWN -->
+        <div id="midafentanyl-box" class="hidden bg-slate-900 border border-sky-800/80 rounded-xl p-4 mb-5 space-y-2">
+          <h4 id="dual-box-title" class="text-xs font-bold text-sky-300 uppercase tracking-wider flex items-center gap-2">
+            <i class="fa-solid fa-layer-group"></i> Delivered Dose Summary
+          </h4>
+          <p id="dual-box-subtitle" class="text-xs text-slate-400">
+            Standard parameter: Midazolam target rate in mg/hr.
+          </p>
+          <div class="grid grid-cols-2 gap-3 pt-2 font-mono text-xs">
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <p id="agent1-label" class="text-slate-400">Midazolam Delivered:</p>
+              <p id="agent1-deliv-val" class="text-base font-bold text-emerald-400 mt-0.5">-- mg/kg/hr</p>
+            </div>
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <p id="agent2-label" class="text-slate-400">Co-Agent Delivered:</p>
+              <p id="agent2-deliv-val" class="text-base font-bold text-emerald-400 mt-0.5">-- mcg/hr</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- SAFETY ALERT BANNER -->
+        <div id="safety-alert-box" class="rounded-xl p-4 border transition-all duration-200">
+          <div class="flex items-center gap-3">
+            <i id="safety-icon" class="fa-solid fa-shield-halved text-2xl"></i>
+            <div>
+              <h4 id="safety-title" class="font-bold text-sm">Standard Dosage Parameters</h4>
+              <p id="safety-desc" class="text-xs mt-0.5">Dose is within recommended standard clinical guidelines.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- EXTENDED TITRATION MATRIX TABLE -->
+      <div class="bg-slate-800 rounded-xl border border-slate-700 p-5 shadow-lg">
+        <h3 class="text-sm font-bold text-slate-100 border-b border-slate-700 pb-3 mb-4 flex items-center justify-between">
+          <span><i class="fa-solid fa-table-list text-sky-400 mr-2"></i> Extended Titration Matrix</span>
+          <span class="text-xs text-slate-400 font-normal">Calculated for patient parameters</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-900 text-slate-300 uppercase border-b border-slate-700">
+              <tr>
+                <th class="py-2.5 px-3">Target Dose</th>
+                <th class="py-2.5 px-3">Pump Rate (mL/h)</th>
+                <th class="py-2.5 px-3">Dosage Range Tier</th>
+                <th class="py-2.5 px-3 text-right no-print">Quick Set</th>
+              </tr>
+            </thead>
+            <tbody id="titration-table-body" class="divide-y divide-slate-700 text-slate-200">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 no-print"></div>
+
+  <!-- REFERENCES FOOTER -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+    <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 text-xs text-slate-400">
+      <p class="font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
+        <i class="fa-solid fa-book-bookmark text-sky-400"></i> Clinical References & Guidelines:
+      </p>
+      <ul class="list-disc list-inside space-y-1 text-[11px] font-mono">
+        <li>UpToDate Critical Care Drug Reference</li>
+        <li>Ministry of Health (MOH) Malaysia Drug Formulary</li>
+        <li>2nd Swiss Vasopressin Consensus: Vasopressin in Septic Shock and other Vasodilatory States</li>
+      </ul>
+      <p class="text-[10px] text-slate-500 mt-2 font-mono">
+        koayfami-ai.github.io | Hospital Bukit Mertajam AIM Service
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // MEDICATION DATABASE AND CLINICAL DOSING RULES
+    const DRUGS = {
+      noradrenaline: {
+        category: 'vaso',
+        name: 'Noradrenaline',
+        unit: 'mcg/kg/min',
+        weightBased: true,
+        standardLimit: 1.0,
+        highLimit: 3.0,
+        matrixDoses: [0.05, 0.1, 0.5, 1.0],
+        strengths: {
+          standard: { label: 'Standard (8 mg in 50 mL D5W / NS)', conc: 160, detail: '8 mg top-up to 50 mL D5W/NS = 160 mcg/mL' },
+          single: { label: 'Single Strength (4 mg in 50 mL D5W / NS)', conc: 80, detail: '4 mg top-up to 50 mL = 80 mcg/mL' },
+          quad: { label: 'Quadruple Strength (16 mg in 50 mL)', conc: 320, detail: '16 mg top-up to 50 mL = 320 mcg/mL' }
+        }
+      },
+      dobutamine: {
+        category: 'vaso',
+        name: 'Dobutamine (Dobu)',
+        unit: 'mcg/kg/min',
+        weightBased: true,
+        standardLimit: 5.0,
+        highLimit: 20.0,
+        matrixDoses: [2.0, 3.0, 4.0, 5.0],
+        strengths: {
+          standard: { label: 'Standard (250 mg in 50 mL D5W / NS)', conc: 5000, detail: '250 mg top-up to 50 mL = 5000 mcg/mL (5 mg/mL)' },
+          double: { label: 'Double Strength (500 mg in 50 mL)', conc: 10000, detail: '500 mg top-up to 50 mL = 10,000 mcg/mL (10 mg/mL)' }
+        }
+      },
+      dopamine: {
+        category: 'vaso',
+        name: 'Dopamine',
+        unit: 'mcg/kg/min',
+        weightBased: true,
+        standardLimit: 3.0,
+        highLimit: 20.0,
+        matrixDoses: [1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 20.0],
+        strengths: {
+          standard: { label: 'Standard (200 mg in 50 mL D5W / NS)', conc: 4000, detail: '200 mg top-up to 50 mL = 4000 mcg/mL (4 mg/mL)' },
+          double: { label: 'Double Strength (400 mg in 50 mL D5W / NS)', conc: 8000, detail: '400 mg top-up to 50 mL = 8000 mcg/mL (8 mg/mL)' }
+        }
+      },
+      adrenaline: {
+        category: 'vaso',
+        name: 'Adrenaline',
+        unit: 'mcg/kg/min',
+        weightBased: true,
+        standardLimit: 0.05,
+        highLimit: 0.5,
+        criticalLimit: 1.0,
+        matrixDoses: [0.01, 0.05],
+        strengths: {
+          standard: { label: 'Standard (6 mg in 50 mL NS / D5W)', conc: 120, detail: '6 mg top-up to 50 mL = 120 mcg/mL' },
+          single: { label: 'Single Strength (4 mg in 50 mL)', conc: 80, detail: '4 mg top-up to 50 mL = 80 mcg/mL' }
+        }
+      },
+      vasopressin: {
+        category: 'vaso',
+        name: 'Vasopressin',
+        unit: 'units/hr',
+        weightBased: false,
+        standardLimit: 1.8, // 0.03 unit/min = 1.8 units/hr
+        highLimit: 2.4,     // 0.04 unit/min = 2.4 units/hr
+        matrixDoses: [0.6, 1.2, 1.8, 2.4],
+        strengths: {
+          standard: { 
+            label: 'Standard (50 units in 50 mL NS - 1 unit/mL)', 
+            conc: 1.0, 
+            detail: '50 units in 50 mL NS = 1 unit/mL (1 unit/hr = 1.0 mL/hr). 0.01 unit/min = 0.6 mL/hr | 0.03 unit/min = 1.8 mL/hr | 0.04 unit/min = 2.4 mL/hr' 
+          }
+        }
+      },
+      midafentanyl: {
+        category: 'sed',
+        name: 'Mida Fentanyl',
+        unit: 'mg/hr',
+        weightBased: false,
+        dual: 'fentanyl',
+        standardLimit: 5.0,
+        highLimit: 10.0,
+        matrixDoses: [1, 2, 3, 4, 5, 6, 8, 10],
+        strengths: {
+          standard: { 
+            label: 'Midazolam 50mg + Fentanyl 500mcg in 50mL', 
+            conc: 1.0, 
+            detail: 'Midazolam 15mg/3mL x 3 amp + Midazolam 5mg/mL x 1 amp (50mg) + Fentanyl 100mcg/2mL x 5 amp (500mcg) + 30mL NS (TOTAL VOL = 50mL)' 
+          }
+        }
+      },
+      midamorphine: {
+        category: 'sed',
+        name: 'Mida Morphine',
+        unit: 'mg/hr',
+        weightBased: false,
+        dual: 'morphine',
+        standardLimit: 0.1, // limit for mg/kg/hr
+        highLimit: 0.2,
+        matrixDoses: [1, 2, 3, 4, 5, 6, 8, 10],
+        strengths: {
+          standard: { 
+            label: 'Midazolam 50mg + Morphine 50mg in 50mL', 
+            conc: 1.0, 
+            detail: 'Midazolam 15mg/3mL x 3 amp + Midazolam 5mg/mL x 1 amp (50mg) + Morphine 10mg/mL x 5 amp (50mg) + 35mL NS (TOTAL VOL = 50mL)' 
+          }
+        }
+      },
+      tazosin: {
+        category: 'abx',
+        name: 'Tazosin (Piperacillin/Tazobactam)',
+        unit: 'g/dose',
+        weightBased: false,
+        matrixDoses: [2.25, 3.375, 4.5],
+        strengths: {
+          s45: { label: '4.5g Dose (Normal CrCl > 40)', conc: 4.5, detail: '4.5g reconstituted in 100 mL N/S over 4 hours QID' },
+          s3375: { label: '3.375g Dose (CrCl 20 - 40)', conc: 3.375, detail: '3.375g reconstituted in 100 mL N/S over 4 hours QID' },
+          s225: { label: '2.25g Dose (CrCl < 20)', conc: 2.25, detail: '2.25g reconstituted in 100 mL N/S over 4 hours QID' }
+        }
+      },
+      cefepime: {
+        category: 'abx',
+        name: 'Cefepime',
+        unit: 'g/dose',
+        weightBased: false,
+        matrixDoses: [1.0, 2.0],
+        strengths: {
+          s20: { label: '2.0g Dose (CrCl > 50)', conc: 2.0, detail: '2g in 100 mL N/S over 3-4 hours TDS' },
+          s10: { label: '1.0g Dose (Renal Adjusted)', conc: 1.0, detail: '1g in 100 mL N/S adjusted by CrCl (TDS / BD / OD)' }
+        }
+      },
+      meropenem: {
+        category: 'abx',
+        name: 'Meropenem',
+        unit: 'g/dose',
+        weightBased: false,
+        matrixDoses: [0.5, 1.0],
+        strengths: {
+          s10: { label: '1.0g Dose (Standard / Adjusted)', conc: 1.0, detail: '1g in 100 mL N/S over 3 hours' },
+          s05: { label: '500mg Dose (Renal Adjusted)', conc: 0.5, detail: '500mg in 100 mL N/S over 3 hours' }
+        }
+      },
+      unasyn: {
+        category: 'abx',
+        name: 'Unasyn (Ampicillin/Sulbactam)',
+        unit: 'g/dose',
+        weightBased: false,
+        matrixDoses: [1.5, 3.0],
+        strengths: {
+          s30: { label: '3.0g Dose (Standard / Adjusted)', conc: 3.0, detail: '3g reconstituted in 100 mL N/S over 30-60 minutes' },
+          s15: { label: '1.5g Dose (Renal Adjusted)', conc: 1.5, detail: '1.5g reconstituted in 100 mL N/S over 30-60 minutes' }
+        }
+      }
+    };
+
+    let currentCategory = 'vaso';
+    let currentCalcMode = 'forward';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setupEventListeners();
+      populateDrugDropdown();
+      calculateCrCl();
+      calculate();
+    });
+
+    function setupEventListeners() {
+      ['pt-weight', 'pt-age', 'pt-sex', 'pt-scr', 'pt-name', 'pt-id'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+          calculateCrCl();
+          calculate();
+        });
+      });
+      document.querySelectorAll('input[name="scr-unit"]').forEach(r => {
+        r.addEventListener('change', () => {
+          calculateCrCl();
+          calculate();
+        });
+      });
+    }
+
+    function switchCategory(cat) {
+      currentCategory = cat;
+      ['vaso', 'sed', 'abx'].forEach(c => {
+        const tab = document.getElementById(`tab-${c}`);
+        if(c === cat) {
+          tab.className = "px-4 py-2 text-sm font-semibold border-b-2 border-sky-400 text-sky-400 focus:outline-none";
+        } else {
+          tab.className = "px-4 py-2 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 focus:outline-none";
+        }
+      });
+
+      const abxCard = document.getElementById('abx-renal-matrix-card');
+      if(cat === 'abx') {
+        abxCard.classList.remove('hidden');
+      } else {
+        abxCard.classList.add('hidden');
+      }
+
+      populateDrugDropdown();
+    }
+
+    function populateDrugDropdown() {
+      const drugSelect = document.getElementById('drug-select');
+      drugSelect.innerHTML = '';
+      Object.keys(DRUGS).forEach(key => {
+        if(DRUGS[key].category === currentCategory) {
+          const opt = document.createElement('option');
+          opt.value = key;
+          opt.textContent = DRUGS[key].name;
+          drugSelect.appendChild(opt);
+        }
+      });
+      onDrugChange();
+    }
+
+    function onDrugChange() {
+      const drugKey = document.getElementById('drug-select').value;
+      const drug = DRUGS[drugKey];
+      const strSelect = document.getElementById('strength-select');
+      strSelect.innerHTML = '';
+      
+      Object.keys(drug.strengths).forEach(sKey => {
+        const opt = document.createElement('option');
+        opt.value = sKey;
+        opt.textContent = drug.strengths[sKey].label;
+        strSelect.appendChild(opt);
+      });
+
+      document.getElementById('input-unit').textContent = currentCalcMode === 'forward' ? drug.unit : 'mL / hour';
+      document.getElementById('output-unit').textContent = currentCalcMode === 'forward' ? 'mL / hour' : drug.unit;
+
+      const dualBox = document.getElementById('midafentanyl-box');
+      if(drug.dual) {
+        dualBox.classList.remove('hidden');
+        if(currentCalcMode === 'forward') {
+          document.getElementById('calc-input').value = 1;
+        }
+      } else {
+        dualBox.classList.add('hidden');
+      }
+
+      calculate();
+    }
+
+    function setCalcMode(mode) {
+      currentCalcMode = mode;
+      const drugKey = document.getElementById('drug-select').value;
+      const drug = DRUGS[drugKey];
+
+      if(mode === 'forward') {
+        document.getElementById('btn-mode-forward').className = "px-3 py-1 rounded bg-sky-600 text-white font-semibold";
+        document.getElementById('btn-mode-reverse').className = "px-3 py-1 rounded text-slate-400 hover:text-white font-semibold";
+        document.getElementById('input-label').textContent = `Enter Desired Dose (${drug.unit})`;
+        document.getElementById('output-label').textContent = `Required Pump Infusion Rate`;
+        document.getElementById('input-unit').textContent = drug.unit;
+        document.getElementById('output-unit').textContent = 'mL / hour';
+      } else {
+        document.getElementById('btn-mode-reverse').className = "px-3 py-1 rounded bg-sky-600 text-white font-semibold";
+        document.getElementById('btn-mode-forward').className = "px-3 py-1 rounded text-slate-400 hover:text-white font-semibold";
+        document.getElementById('input-label').textContent = `Enter Pump Infusion Rate (mL/hour)`;
+        document.getElementById('output-label').textContent = `Delivered Dose (${drug.unit})`;
+        document.getElementById('input-unit').textContent = 'mL / hour';
+        document.getElementById('output-unit').textContent = drug.unit;
+      }
+      calculate();
+    }
+
+    function calculateCrCl() {
+      const weight = parseFloat(document.getElementById('pt-weight').value) || 0;
+      const age = parseFloat(document.getElementById('pt-age').value) || 0;
+      const sex = document.getElementById('pt-sex').value;
+      const scrVal = parseFloat(document.getElementById('pt-scr').value) || 0;
+      const scrUnit = document.querySelector('input[name="scr-unit"]:checked').value;
+
+      if(weight <= 0 || age <= 0 || scrVal <= 0) {
+        document.getElementById('cg-crcl-val').textContent = '-- mL/min';
+        return 0;
+      }
+
+      let scrMgDl = scrVal;
+      if(scrUnit === 'umol') {
+        scrMgDl = scrVal / 88.4;
+      }
+
+      let crcl = ((140 - age) * weight) / (72 * scrMgDl);
+      if(sex === 'female') crcl *= 0.85;
+
+      crcl = Math.round(crcl);
+
+      document.getElementById('cg-crcl-val').textContent = `${crcl} mL/min`;
+      document.getElementById('crcl-badge').textContent = `CrCl: ${crcl} mL/min`;
+      document.getElementById('abx-crcl-text').textContent = `${crcl} mL/min`;
+
+      let strata = "Normal / Mild";
+      if(crcl < 15) strata = "End Stage / Dialysis (< 15 mL/min)";
+      else if(crcl < 30) strata = "Severe Impairment (15 - 29 mL/min)";
+      else if(crcl < 50) strata = "Moderate Impairment (30 - 49 mL/min)";
+      
+      document.getElementById('cg-strata').textContent = `Category: ${strata}`;
+
+      updateAntibioticRenalRules(crcl);
+      return crcl;
+    }
+
+    function updateAntibioticRenalRules(crcl) {
+      const tazRec = document.getElementById('taz-rec');
+      const tazTag = document.getElementById('taz-tag');
+      if(crcl < 20) {
+        tazRec.innerHTML = `<strong class="text-rose-400">Recommended: 2.25g QID (q6h)</strong> (CrCl &lt; 20 mL/min)`;
+        tazTag.textContent = "CrCl < 20: 2.25g QID";
+      } else if(crcl <= 40) {
+        tazRec.innerHTML = `<strong class="text-amber-400">Recommended: 3.375g QID (q6h)</strong> (CrCl 20 - 40 mL/min)`;
+        tazTag.textContent = "CrCl 20-40: 3.375g QID";
+      } else {
+        tazRec.innerHTML = `<strong class="text-emerald-400">Recommended: 4.5g QID (q6h)</strong> (CrCl &gt; 40 mL/min)`;
+        tazTag.textContent = "Standard: 4.5g QID";
+      }
+
+      const cefRec = document.getElementById('cef-rec');
+      const cefTag = document.getElementById('cef-tag');
+      if(crcl < 11) {
+        cefRec.innerHTML = `<strong class="text-rose-400">Recommended: 1g OD (q24h)</strong> (CrCl &lt; 11 mL/min)`;
+        cefTag.textContent = "CrCl < 11: 1g OD";
+      } else if(crcl <= 29) {
+        cefRec.innerHTML = `<strong class="text-amber-400">Recommended: 1g BD (q12h)</strong> (CrCl 11 - 29 mL/min)`;
+        cefTag.textContent = "CrCl 11-29: 1g BD";
+      } else if(crcl <= 50) {
+        cefRec.innerHTML = `<strong class="text-amber-300">Recommended: 1g TDS (q8h)</strong> (CrCl 30 - 50 mL/min)`;
+        cefTag.textContent = "CrCl 30-50: 1g TDS";
+      } else {
+        cefRec.innerHTML = `<strong class="text-emerald-400">Recommended: 2g TDS (q8h)</strong> (CrCl &gt; 50 mL/min)`;
+        cefTag.textContent = "Standard: 2g TDS";
+      }
+
+      const merRec = document.getElementById('mer-rec');
+      const merTag = document.getElementById('mer-tag');
+      if(crcl < 10) {
+        merRec.innerHTML = `<strong class="text-rose-400">Recommended: 500mg OD</strong> (CrCl &lt; 10 mL/min)`;
+        merTag.textContent = "CrCl < 10: 500mg OD";
+      } else if(crcl <= 25) {
+        merRec.innerHTML = `<strong class="text-amber-400">Recommended: 500mg BD</strong> (CrCl 10 - 25 mL/min)`;
+        merTag.textContent = "CrCl 10-25: 500mg BD";
+      } else if(crcl <= 50) {
+        merRec.innerHTML = `<strong class="text-amber-300">Recommended: 1g BD</strong> (CrCl 26 - 50 mL/min)`;
+        merTag.textContent = "CrCl 26-50: 1g BD";
+      } else {
+        merRec.innerHTML = `<strong class="text-emerald-400">Recommended: 1g TDS</strong> (CrCl &gt; 50 mL/min)`;
+        merTag.textContent = "Standard: 1g TDS";
+      }
+
+      const unaRec = document.getElementById('una-rec');
+      const unaTag = document.getElementById('una-tag');
+      if(unaRec && unaTag) {
+        if(crcl < 15) {
+          unaRec.innerHTML = `<strong class="text-rose-400">Recommended: 3g OD (q24h)</strong> (CrCl &lt; 15 mL/min)`;
+          unaTag.textContent = "CrCl < 15: 3g OD";
+        } else if(crcl < 30) {
+          unaRec.innerHTML = `<strong class="text-amber-400">Recommended: 3g BD (q12h)</strong> (CrCl 15 - 29 mL/min)`;
+          unaTag.textContent = "CrCl 15-29: 3g BD";
+        } else {
+          unaRec.innerHTML = `<strong class="text-emerald-400">Recommended: 3g QID (q6h)</strong> (CrCl &ge; 30 mL/min)`;
+          unaTag.textContent = "Standard: 3g QID";
+        }
+      }
+    }
+
+    function calculate() {
+      const weight = parseFloat(document.getElementById('pt-weight').value) || 1;
+      const drugKey = document.getElementById('drug-select').value;
+      const strKey = document.getElementById('strength-select').value;
+      const inputVal = parseFloat(document.getElementById('calc-input').value) || 0;
+
+      const drug = DRUGS[drugKey];
+      const strObj = drug.strengths[strKey] || Object.values(drug.strengths)[0];
+
+      document.getElementById('mix-details').textContent = strObj.detail;
+
+      let calculatedRate = 0;
+      let calculatedDose = 0;
+
+      if(currentCalcMode === 'forward') {
+        calculatedDose = inputVal;
+        if(drug.weightBased) {
+          calculatedRate = (calculatedDose * weight * 60) / strObj.conc;
+        } else {
+          calculatedRate = calculatedDose / strObj.conc;
+        }
+        document.getElementById('calc-output-val').textContent = calculatedRate.toFixed(1);
+      } else {
+        calculatedRate = inputVal;
+        if(drug.weightBased) {
+          calculatedDose = (calculatedRate * strObj.conc) / (weight * 60);
+        } else {
+          calculatedDose = calculatedRate * strObj.conc;
+        }
+        document.getElementById('calc-output-val').textContent = calculatedDose.toFixed(2);
+      }
+
+      if(drug.dual) {
+        const midaMgHr = calculatedDose;
+        const midaMgKgHr = midaMgHr / weight;
+
+        document.getElementById('agent1-label').textContent = 'Midazolam Delivered:';
+        document.getElementById('agent1-deliv-val').textContent = `${midaMgKgHr.toFixed(3)} mg/kg/hr (${midaMgHr.toFixed(1)} mg/hr)`;
+
+        if(drug.dual === 'fentanyl') {
+          const fentMcgHr = midaMgHr * 10.0;
+          document.getElementById('dual-box-title').innerHTML = `<i class="fa-solid fa-layer-group"></i> Midazolam & Fentanyl Delivered Summary`;
+          document.getElementById('dual-box-subtitle').textContent = `Standard: Midazolam 0.01 - 0.1 mg/kg/hr | Fentanyl 1 - 10 mcg/kg/hr (50 - 300 mcg/hr)`;
+          document.getElementById('agent2-label').textContent = 'Fentanyl Delivered:';
+          document.getElementById('agent2-deliv-val').textContent = `${fentMcgHr.toFixed(0)} mcg/hr (${(fentMcgHr / weight).toFixed(2)} mcg/kg/hr)`;
+        } else if(drug.dual === 'morphine') {
+          const morphMgHr = midaMgHr * 1.0;
+          const morphMgKgHr = morphMgHr / weight;
+          document.getElementById('dual-box-title').innerHTML = `<i class="fa-solid fa-layer-group"></i> Midazolam & Morphine Delivered Summary`;
+          document.getElementById('dual-box-subtitle').textContent = `Standard target: Not more than 0.1 mg/kg/hr for both agents`;
+          document.getElementById('agent2-label').textContent = 'Morphine Delivered:';
+          document.getElementById('agent2-deliv-val').textContent = `${morphMgKgHr.toFixed(3)} mg/kg/hr (${morphMgHr.toFixed(1)} mg/hr)`;
+        }
+      }
+
+      updateSafetyAlert(drugKey, calculatedDose, weight);
+      renderTitrationTable(drug, strObj, weight);
+    }
+
+    function updateSafetyAlert(drugKey, dose, weight) {
+      const box = document.getElementById('safety-alert-box');
+      const icon = document.getElementById('safety-icon');
+      const title = document.getElementById('safety-title');
+      const desc = document.getElementById('safety-desc');
+
+      if(drugKey === 'noradrenaline') {
+        if(dose <= 1.0) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Noradrenaline Standard Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within standard parameters (0.01 – 1.0 mcg/kg/min).`;
+        } else if(dose <= 3.0) {
+          box.className = "rounded-xl p-4 border bg-amber-950/40 border-amber-800 text-amber-200";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Noradrenaline High Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within high dose limits (1.0 – 3.0 mcg/kg/min). Senior review advised.`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-rose-950/80 border-rose-600 text-rose-100 animate-critical";
+          icon.className = "fa-solid fa-skull-crossbones text-2xl text-rose-400";
+          title.textContent = "CRITICAL NORADRENALINE DOSE";
+          desc.textContent = `Dose (${dose} mcg/kg/min) exceeds 3.0 mcg/kg/min. High risk of peripheral ischemia.`;
+        }
+      } else if(drugKey === 'dobutamine') {
+        if(dose <= 5.0) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Dobutamine Standard Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within standard parameters (2.0 – 5.0 mcg/kg/min).`;
+        } else if(dose <= 20.0) {
+          box.className = "rounded-xl p-4 border bg-amber-950/40 border-amber-800 text-amber-200";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Dobutamine High Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within high dose range (5.1 – 20.0 mcg/kg/min). Monitor tachyarrhythmias.`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-rose-950/80 border-rose-600 text-rose-100 animate-critical";
+          icon.className = "fa-solid fa-skull-crossbones text-2xl text-rose-400";
+          title.textContent = "CRITICAL DOBUTAMINE DOSE";
+          desc.textContent = `Dose (${dose} mcg/kg/min) exceeds maximum 20.0 mcg/kg/min limit.`;
+        }
+      } else if(drugKey === 'dopamine') {
+        if(dose <= 3.0) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Dopamine Standard Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within standard low-to-medium dose parameters (1.0 – 3.0 mcg/kg/min).`;
+        } else if(dose <= 20.0) {
+          box.className = "rounded-xl p-4 border bg-amber-950/40 border-amber-800 text-amber-200";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Dopamine High Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is in high dose range (3.0 – 20.0 mcg/kg/min). Monitor for tachyarrhythmias and vasoconstriction.`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-rose-950/80 border-rose-600 text-rose-100 animate-critical";
+          icon.className = "fa-solid fa-skull-crossbones text-2xl text-rose-400";
+          title.textContent = "CRITICAL DOPAMINE DOSE EXCEEDED";
+          desc.textContent = `Dose (${dose} mcg/kg/min) exceeds maximum recommended 20.0 mcg/kg/min limit.`;
+        }
+      } else if(drugKey === 'adrenaline') {
+        if(dose <= 0.05) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Adrenaline Standard Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is within standard parameters (0.01 – 0.05 mcg/kg/min).`;
+        } else if(dose <= 0.5) {
+          box.className = "rounded-xl p-4 border bg-amber-950/40 border-amber-800 text-amber-200";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Adrenaline High Dose Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is in high dose range (> 0.05 to 0.5 mcg/kg/min).`;
+        } else if(dose <= 1.0) {
+          box.className = "rounded-xl p-4 border bg-purple-950/80 border-purple-600 text-purple-100";
+          icon.className = "fa-solid fa-heart-pulse text-2xl text-purple-400";
+          title.textContent = "Cardiac Arrest / Post-Resuscitation Dosing Range";
+          desc.textContent = `Dose (${dose} mcg/kg/min) is in profound shock / cardiac arrest range (> 0.5 – 1.0 mcg/kg/min).`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-rose-950/80 border-rose-600 text-rose-100 animate-critical";
+          icon.className = "fa-solid fa-skull-crossbones text-2xl text-rose-400";
+          title.textContent = "CRITICAL ADRENALINE EXCEEDED";
+          desc.textContent = `Dose exceeds 1.0 mcg/kg/min maximum threshold.`;
+        }
+      } else if(drugKey === 'vasopressin') {
+        const unitPerMin = dose / 60;
+        if(dose <= 1.8) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Vasopressin Fixed Rate Range (Usual Vasoplegic Shock)";
+          desc.textContent = `Dose (${dose.toFixed(1)} units/hr = ${unitPerMin.toFixed(3)} unit/min) is within standard vasoplegic shock range (0.01 – 0.03 unit/min).`;
+        } else if(dose <= 2.4) {
+          box.className = "rounded-xl p-4 border bg-amber-950/40 border-amber-800 text-amber-200";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Vasopressin Higher Dosage Range";
+          desc.textContent = `Dose (${dose.toFixed(1)} units/hr = ${unitPerMin.toFixed(3)} unit/min) is in higher dose range (0.04 unit/min) for RV failure / post-cardiotomy syndrome.`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-rose-950/80 border-rose-600 text-rose-100 animate-critical";
+          icon.className = "fa-solid fa-skull-crossbones text-2xl text-rose-400";
+          title.textContent = "CRITICAL VASOPRESSIN DOSE EXCEEDED";
+          desc.textContent = `Dose (${dose.toFixed(1)} units/hr = ${unitPerMin.toFixed(3)} unit/min) exceeds maximum recommended 0.04 unit/min threshold.`;
+        }
+      } else if(drugKey === 'midamorphine') {
+        const mgKgHr = dose / weight;
+        if(mgKgHr <= 0.1) {
+          box.className = "rounded-xl p-4 border bg-emerald-950/40 border-emerald-800 text-emerald-200";
+          icon.className = "fa-solid fa-shield-check text-2xl text-emerald-400";
+          title.textContent = "Mida Morphine Standard Safety Parameter";
+          desc.textContent = `Delivered rate (${mgKgHr.toFixed(3)} mg/kg/hr) is within standard safety limit (≤ 0.1 mg/kg/hr).`;
+        } else {
+          box.className = "rounded-xl p-4 border bg-amber-950/80 border-amber-600 text-amber-100 animate-critical";
+          icon.className = "fa-solid fa-triangle-exclamation text-2xl text-amber-400";
+          title.textContent = "Mida Morphine High Dose Warning";
+          desc.textContent = `Delivered rate (${mgKgHr.toFixed(3)} mg/kg/hr) exceeds standard threshold of 0.1 mg/kg/hr.`;
+        }
+      } else {
+        box.className = "rounded-xl p-4 border bg-slate-800 border-slate-700 text-slate-200";
+        icon.className = "fa-solid fa-check text-2xl text-sky-400";
+        title.textContent = "Active Selection";
+        desc.textContent = "Calculated based on bedside parameters.";
+      }
+    }
+
+    function renderTitrationTable(drug, strObj, weight) {
+      const tbody = document.getElementById('titration-table-body');
+      tbody.innerHTML = '';
+
+      const doseList = drug.matrixDoses || [];
+
+      doseList.forEach(dose => {
+        let rate = 0;
+        if(drug.weightBased) {
+          rate = (dose * weight * 60) / strObj.conc;
+        } else {
+          rate = dose / strObj.conc;
+        }
+
+        let badgeClass = "bg-emerald-950 text-emerald-300 border-emerald-700";
+        let statusText = "Standard";
+        let doseDisplayText = `${dose} ${drug.unit}`;
+
+        const drugKey = document.getElementById('drug-select').value;
+
+        if(drugKey === 'noradrenaline') {
+          if(dose > 1.0) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "High Dose"; }
+        } else if(drugKey === 'dobutamine') {
+          if(dose > 5.0) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "High Dose"; }
+        } else if(drugKey === 'dopamine') {
+          if(dose > 3.0) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "High Dose"; }
+        } else if(drugKey === 'adrenaline') {
+          if(dose > 0.5) { badgeClass = "bg-purple-950 text-purple-300 border-purple-700"; statusText = "Cardiac Arrest"; }
+          else if(dose > 0.05) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "High"; }
+        } else if(drugKey === 'vasopressin') {
+          const uMin = (dose / 60).toFixed(2);
+          doseDisplayText = `${dose} units/hr (${uMin} u/min)`;
+          if(dose > 1.8) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "0.04 u/min (RV/Post-cardio)"; }
+          else { badgeClass = "bg-emerald-950 text-emerald-300 border-emerald-700"; statusText = `${uMin} u/min (Vasoplegic)`; }
+        } else if(drugKey === 'midamorphine') {
+          if((dose / weight) > 0.1) { badgeClass = "bg-amber-950 text-amber-300 border-amber-700"; statusText = "> 0.1 mg/kg/hr"; }
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-bold text-sky-300">${doseDisplayText}</td>
+          <td class="py-2.5 px-3 font-bold text-emerald-400 text-sm">${rate.toFixed(1)} mL/h</td>
+          <td class="py-2.5 px-3"><span class="px-2 py-0.5 rounded border text-[10px] ${badgeClass}">${statusText}</span></td>
+          <td class="py-2.5 px-3 text-right no-print">
+            <button onclick="loadDoseIntoCalc(${dose})" class="bg-slate-700 hover:bg-sky-600 text-slate-100 px-2.5 py-1 rounded text-[11px] font-sans font-medium transition">Set Dose</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function loadDoseIntoCalc(dose) {
+      setCalcMode('forward');
+      document.getElementById('calc-input').value = dose;
+      calculate();
+    }
+
+    // ==========================================
+    // ACTION FUNCTIONS: EXPORT, SAVE, SHARE, PRINT
+    // ==========================================
+
+    function getSummaryData() {
+      const name = document.getElementById('pt-name').value || 'Unassigned';
+      const id = document.getElementById('pt-id').value || 'N/A';
+      const weight = document.getElementById('pt-weight').value || '0';
+      const age = document.getElementById('pt-age').value || '0';
+      const sex = document.getElementById('pt-sex').value;
+      const crcl = document.getElementById('cg-crcl-val').textContent;
+      
+      const drugKey = document.getElementById('drug-select').value;
+      const drug = DRUGS[drugKey];
+      const strKey = document.getElementById('strength-select').value;
+      const strObj = drug.strengths[strKey] || Object.values(drug.strengths)[0];
+      
+      const inputVal = document.getElementById('calc-input').value;
+      const outputVal = document.getElementById('calc-output-val').textContent;
+      const inputUnit = document.getElementById('input-unit').textContent;
+      const outputUnit = document.getElementById('output-unit').textContent;
+
+      return {
+        timestamp: new Date().toLocaleString(),
+        patient: { name, id, weight, age, sex, crcl },
+        calculation: {
+          drug: drug.name,
+          preparation: strObj.label,
+          direction: currentCalcMode === 'forward' ? 'Target Dose -> Pump Rate' : 'Pump Rate -> Delivered Dose',
+          input: `${inputVal} ${inputUnit}`,
+          output: `${outputVal} ${outputUnit}`,
+          details: strObj.detail
+        }
+      };
+    }
+
+    function generateFormattedTextSummary() {
+      const data = getSummaryData();
+      return `CRITICAL CARE DRUGS DOSAGES & INFUSION RATE CALCULATOR
+--------------------------------------------------
+Timestamp: ${data.timestamp}
+Physician: Dr. Carmen Koay Gaik Bee (Hospital Bukit Mertajam)
+
+PATIENT DEMOGRAPHY:
+- Name: ${data.patient.name}
+- Bed / ID: ${data.patient.id}
+- Weight: ${data.patient.weight} kg
+- Age / Sex: ${data.patient.age} Yrs / ${data.patient.sex}
+- Calculated CrCl: ${data.patient.crcl}
+
+ACTIVE INFUSION CALCULATION:
+- Medication: ${data.calculation.drug}
+- Dilution: ${data.calculation.preparation}
+- Parameter: ${data.calculation.input}
+- Result Rate: ${data.calculation.output}
+- Bedside Prep: ${data.calculation.details}
+--------------------------------------------------`;
+    }
+
+    // 1. SAVE FUNCTION (Saves to LocalStorage)
+    
+let activeDrugs = [];
+
+function addCurrentDrug(){
+
+    const drugKey =
+        document.getElementById('drug-select').value;
+
+    const drug =
+        DRUGS[drugKey];
+
+    const prep =
+        document.getElementById('strength-select');
+
+    const prepText =
+        prep.options[prep.selectedIndex].text;
+
+    const parameter =
+        document.getElementById('calc-input').value;
+
+    const result =
+        document.getElementById('calc-output-val').textContent;
+
+    activeDrugs.push({
+        drug : drug.name,
+        prep : prepText,
+        param : parameter,
+        rate : result
+    });
+
+    renderActiveDrugList();
+}
+
+function removeActiveDrug(index){
+
+    activeDrugs.splice(index , 1);
+
+    renderActiveDrugList();
+}
+
+function renderActiveDrugList(){
+
+    const list =
+        document.getElementById(
+            'active-drugs-list'
+        );
+
+    list.innerHTML = '';
+
+    activeDrugs.forEach((d , idx)=>{
+
+        list.innerHTML += `
+        <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+
+            <div class="flex justify-between items-start">
+
+                <div>
+
+                    <div class="font-bold text-sky-300">
+                        ${d.drug}
+                    </div>
+
+                    <div class="text-xs text-slate-400 mt-1">
+                        ${d.prep}
+                    </div>
+
+                    <div class="text-xs text-emerald-400 mt-1">
+                        Parameter: ${d.param}
+                    </div>
+
+                    <div class="text-xs text-amber-300">
+                        Result: ${d.rate}
+                    </div>
+
+                </div>
+
+                <button
+                    onclick="removeActiveDrug(${idx})"
+                    class="text-rose-400 hover:text-rose-300">
+
+                    <i class="fa-solid fa-trash"></i>
+
+                </button>
+
+            </div>
+
+        </div>
+        `;
+    });
+
+}
+
+function saveCalculation() {
+      const data = getSummaryData();
+      const savedList = JSON.parse(localStorage.getItem('cc_infusion_saved') || '[]');
+      savedList.unshift(data);
+      localStorage.setItem('cc_infusion_saved', JSON.stringify(savedList));
+      showToast('Calculation saved locally successfully!', 'emerald');
+    }
+
+    // 2. EXPORT FUNCTION (Downloads Text Report)
+    function exportReport() {
+      const text = generateFormattedTextSummary();
+      const ptId = document.getElementById('pt-id').value || 'Patient';
+      const filename = `Infusion_Report_${ptId.replace(/\s+/g, '_')}.txt`;
+      
+      const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      
+      showToast('Report exported successfully!', 'sky');
+    }
+
+    // 3. SHARE FUNCTION (Web Share API or Clipboard Fallback)
+    async function shareCalculation() {
+      const text = generateFormattedTextSummary();
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Critical Care Infusion Calculation',
+            text: text
+          });
+          showToast('Shared successfully!', 'amber');
+        } catch (err) {
+          copySummaryToClipboard(text);
+        }
+      } else {
+        copySummaryToClipboard(text);
+      }
+    }
+
+    function copySummaryToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Calculation summary copied to clipboard!', 'amber');
+      }).catch(() => {
+        showToast('Unable to copy to clipboard', 'rose');
+      });
+    }
+
+    // 4. PRINT FUNCTION
+    function printReport() {
+      window.print();
+    }
+
+    // HELPER: TOAST NOTIFICATIONS
+    function showToast(message, color = 'sky') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let borderCol = 'border-sky-500 bg-sky-950 text-sky-200';
+      if(color === 'emerald') borderCol = 'border-emerald-500 bg-emerald-950 text-emerald-200';
+      if(color === 'amber') borderCol = 'border-amber-500 bg-amber-950 text-amber-200';
+      if(color === 'rose') borderCol = 'border-rose-500 bg-rose-950 text-rose-200';
+
+      toast.className = `toast-anim border px-4 py-3 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 ${borderCol}`;
+      toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
